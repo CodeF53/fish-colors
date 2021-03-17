@@ -28,8 +28,14 @@ const Pixel[] COLORS = [
 
 void main() {
 	IMGError err;
-	Image img = load("in/fish.png", err);
-	
+	Image[] fishTex = new Image[12];
+	for (uint size = 0; size <= 1; size++) {
+    for (uint pattern = 0; pattern <=5; pattern++) {
+			//writeln("grabbing %s.png".format(size | pattern<<8));
+			fishTex[(size+1)*(pattern+1)-1] = load("in/%s.png".format(size | pattern<<8), err);
+		}
+	}
+
 	mkdirRecurse("out/assets/fishcolors/models/item");
 	mkdirRecurse("out/assets/fishcolors/textures/item");
 	mkdirRecurse("out/assets/minecraft/overrides/item");
@@ -37,18 +43,27 @@ void main() {
 	std.file.write("out/pack.mcmeta", import("pack.mcmeta"));
 
 	JSONValue[] overrides;
-	for (uint primary = 0; primary < 16; primary++) {
-		for (uint secondary = 0; secondary < 16; secondary++) {
-			uint min = (secondary << 24) | (primary << 16);
-			uint max = min | 0xFFFF;
-			writeColoredImage(img, "out/assets/fishcolors/textures/item/%s_%s.png".format(primary, secondary), COLORS[primary], COLORS[secondary]);
-			std.file.write("out/assets/fishcolors/models/item/%s_%s.json".format(primary, secondary), import("stubModel.json").format(primary, secondary));
-			JSONValue o = JSONValue([
-				"predicate": JSONValue([
-					"nbt": JSONValue([
-						"BucketVariantTag": "[%s..%s]".format(min, max)])]),
-				"model": JSONValue("fishcolors:item/%s_%s".format(primary, secondary))]);
-			overrides ~= o;
+	int fishValue;
+	Image fishImage;
+  for (uint size = 0; size <= 1; size++) {
+    for (uint pattern = 0; pattern <=5; pattern++) {
+			fishImage = fishTex[(size+1)*(pattern+1)-1];
+      for (uint primary = 0; primary < 16; primary++) {
+        for (uint secondary = 0; secondary < 16; secondary++) {
+
+					fishValue = size | pattern<<8 | primary<<16 | secondary<<24;
+
+					writeColoredImage(fishImage, "out/assets/fishcolors/textures/item/%s.png".format(fishValue), COLORS[primary], COLORS[secondary]);
+
+					std.file.write("out/assets/fishcolors/models/item/%s.json".format(fishValue), import("stubModel.json").format(primary, secondary));
+					JSONValue o = JSONValue([
+						"predicate": JSONValue([
+							"nbt": JSONValue([
+								"BucketVariantTag": "[%s]".format(fishValue)])]),
+						"model": JSONValue("fishcolors:item/%s".format(fishValue))]);
+					overrides ~= o;
+				}
+			}
 		}
 	}
 	JSONValue json = JSONValue(["overrides": JSONValue(overrides)]);
@@ -95,7 +110,7 @@ Pixel toRgb(Hsl hsl) {
 				t += 1;
 			}
 			if (t > 1) {
-				t -= 1;	
+				t -= 1;
 			}
 			if (t < 1f / 6f) {
 				return p + (q - p) * 6 * t;
